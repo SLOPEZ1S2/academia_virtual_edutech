@@ -1,0 +1,87 @@
+{% extends "_layout.html" %}
+{% block title %}Bienvenido{% endblock %}
+
+{% block content %}
+
+<h1>Bienvenido a tu Academia EduTech🎓</h1>
+<p>Selecciona un curso o pregúntame lo que necesites.</p>
+
+<a href="{{ url_for('shop') }}" class="btn primary" style="margin-bottom:20px;">
+  Ver cursos
+</a>
+
+<!-- Contenedor del Chat -->
+<div id="chat-box-container">
+  <div id="chat-window">
+    <div id="chat-messages"></div>
+  </div>
+
+  <div id="chat-input-bar">
+    <input id="chat-input" type="text" placeholder="Escribe tu mensaje..." autocomplete="off">
+    <button id="chat-send-btn">Enviar</button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Autoscroll
+function scrollChat() {
+  const m = document.getElementById("chat-messages");
+  m.scrollTop = m.scrollHeight;
+}
+
+// Enviar mensaje
+document.getElementById("chat-send-btn").addEventListener("click", sendMessage);
+document.getElementById("chat-input").addEventListener("keypress", function(e){
+  if(e.key === "Enter") sendMessage();
+});
+
+function sendMessage() {
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if(!text) return;
+
+  // Mensaje usuario
+  addMessage(text, "user");
+  input.value = "";
+
+  // Mostrar "escribiendo..."
+  const typing = addMessage("Escribiendo...", "assistant typing");
+
+  fetch("/consultar_chatgpt", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({pregunta: text})
+  })
+  .then(response => {
+    const reader = response.body.getReader();
+    let buffer = "";
+
+    return reader.read().then(function processText({ done, value }) {
+      if(done){
+        typing.remove();
+        addMessage(buffer, "assistant");
+        scrollChat();
+        return;
+      }
+      buffer += new TextDecoder().decode(value);
+      scrollChat();
+      return reader.read().then(processText);
+    });
+  });
+}
+
+//  burbuja
+function addMessage(text, type) {
+  const box = document.getElementById("chat-messages");
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.innerText = text;
+  box.appendChild(div);
+  scrollChat();
+  return div;
+}
+</script>
+{% endblock %}

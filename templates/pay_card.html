@@ -1,0 +1,138 @@
+{% extends "_layout.html" %} 
+{% block title %}Pagar con tarjeta (token + cargo){% endblock %}
+
+{% block head %}
+
+  <meta name="pay-amount" content="{{ total }}">
+  <meta name="pay-currency" content="PEN">
+{% endblock %}
+
+{% block content %}
+<section class="panel container small">
+  <div class="card">
+    <h1>Tarjeta débito / crédito</h1>
+    <p>Monto a pagar</p>
+    <div class="amount"><b>S/ {{ '%.2f' % (total / 100) }}</b></div>
+
+    <form id="card-form" novalidate>
+      <label for="email">Correo electrónico</label>
+      <input id="email" name="email" type="email" placeholder="cliente@correo.com" required>
+
+      <label for="card_number">Número de tarjeta</label>
+      <input id="card_number" name="card_number" inputmode="numeric" maxlength="19" placeholder="4111 1111 1111 1111" required>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label for="exp_month">Mes</label>
+          <input id="exp_month" name="expiration_month" inputmode="numeric" maxlength="2" placeholder="MM" required>
+        </div>
+        <div>
+          <label for="exp_year">Año</label>
+          <input id="exp_year" name="expiration_year" inputmode="numeric" maxlength="4" placeholder="YYYY" required>
+        </div>
+      </div>
+
+      <label for="cvv">CVV</label>
+      <input id="cvv" name="cvv" inputmode="numeric" maxlength="4" placeholder="123" required>
+
+      <button id="btn-pagar" class="btn primary" type="submit" style="margin-top:10px">
+        Pagar
+      </button>
+    </form>
+
+    <p class="hint">Este flujo crea <b>token</b> y luego <b>cargo</b> directamente con la API de Culqi.</p>
+    <div id="result" class="alert" style="margin-top:12px;"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const AMOUNT   = Number((document.querySelector('meta[name="pay-amount"]') || {}).content || 0);
+  const CURRENCY = (document.querySelector('meta[name="pay-currency"]') || {}).content || 'PEN';
+  const form = document.getElementById('card-form');
+  const box  = document.getElementById('result');
+
+  function ok(t){ box.className='alert ok'; box.textContent=t; }
+  function err(t){ box.className='alert error'; box.textContent=t; }
+
+
+  function digits(s){ return (s||'').replace(/\D+/g,''); }
+
+
+  const cardInput = document.getElementById('card_number');
+  cardInput.addEventListener('input', (e) => {
+    const only = digits(e.target.value).slice(0,19);
+    e.target.value = only.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const email   = document.getElementById('email').value.trim();
+    const number  = digits(document.getElementById('card_number').value);
+    const month   = digits(document.getElementById('exp_month').value);
+    const year    = digits(document.getElementById('exp_year').value);
+    const cvv     = digits(document.getElementById('cvv').value);
+
+    if (!email || !number || !month || !year || !cvv) {
+      err('Completa todos los campos.'); return;
+    }
+    if (!AMOUNT || AMOUNT <= 0) { err('Monto inválido.'); return; }
+
+    try {
+
+      const tRes = await fetch('/api/culqi/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          card_number: number,
+          cvv: cvv,
+          expiration_month: month,
+          expiration_year: year
+        })
+      });
+
+      const tData = await tRes.json();
+      if (!tRes.ok || !tData.id) {
+        const m = (tData && (tData.user_message || tData.merchant_message || tData.error)) || 'No se pudo crear el token.';
+        err('❌ ' + m);
+        console.error('Token error:', tData);
+        return;
+      }
+
+
+      const cRes = await fetch('/api/payments/charge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token_id: tData.id,
+          email: email,
+          amount: AMOUNT,
+          currency: CURRENCY
+        })
+      });
+      const cData = await cRes.json();
+
+      if (cRes.ok && cData.object === "charge") {
+        ok('✅ Pago exitoso');
+        console.log('Charge:', cData);
+        form.reset();
+      } else {
+        const m = (cData.culqi_error &&
+                   (cData.culqi_error.user_message || cData.culqi_error.merchant_message)) ||
+                   cData.user_message || cData.merchant_message ||
+                   cData.error || 'No se pudo completar el pago.';
+        err('❌ ' + m);
+        console.error('Charge error:', cData);
+      }
+    } catch (e) {
+      err('❌ Error de red. Intenta de nuevo.');
+      console.error(e);
+    }
+  });
+})();
+</script>
+{% endblock %}

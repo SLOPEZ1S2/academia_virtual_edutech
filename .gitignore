@@ -1,0 +1,34 @@
+# ===============================
+# ARCHIVOS QUE NO SE DEBEN SUBIR
+# ===============================
+
+# Entorno virtual
+.venv/
+venv/
+
+# Claves y configuraciones locales
+.env
+.env.*
+*.key
+
+# Compilados de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos temporales
+*.log
+*.sqlite3
+
+# Configuración de VSCode
+.vscode/
+
+# Carpetas de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de Python build
+build/
+dist/
+*.egg-info/

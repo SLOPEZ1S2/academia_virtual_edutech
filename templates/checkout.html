@@ -1,0 +1,33 @@
+{% extends "_layout.html" %}
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="container small">
+  <h1>Checkout</h1>
+
+  <p>Monto total a pagar:</p>
+  <div class="summary">
+    <div>Total</div>
+    <div><b>S/ {{ '%.2f' % (total / 100) }}</b></div>
+  </div>
+
+  <div class="list" style="margin-top:12px;">
+    <a class="btn primary" href="{{ url_for('pay_card') }}">
+      Pagar con tarjeta (Culqi)
+    </a>
+    <a class="btn" href="{{ url_for('pay_wallet') }}">
+      Yape/Plin (QR demo)
+    </a>
+    <a class="btn" href="{{ url_for('pay_paypal') }}">
+      PayPal
+    </a>
+    <a class="btn" href="{{ url_for('pay_crypto') }}">
+      Pagar con Criptomonedas (Coinbase)
+    </a>
+  </div>
+
+  <div class="actions" style="margin-top:12px;">
+    <a class="btn" href="{{ url_for('cart') }}">Volver al carrito</a>
+  </div>
+</div>
+{% endblock %}

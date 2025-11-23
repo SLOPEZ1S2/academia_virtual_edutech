@@ -1,0 +1,76 @@
+{% extends "_layout.html" %} 
+{% block title %}Pago con Criptomonedas{% endblock %}
+
+{% block content %}
+<div class="container small">
+  <h1>Pago con Criptomonedas</h1>
+
+  <p>Monto a pagar:</p>
+  <div class="summary">
+    <div>Total</div>
+    <div><b>S/ {{ '%.2f' % (total / 100) }}</b></div>
+  </div>
+
+
+  <div id="coinbase-button" style="margin-top:20px;"></div>
+  <div id="coinbase-result" class="alert" style="margin-top:12px; display:none;"></div>
+
+  <div class="actions" style="margin-top:20px;">
+    <a class="btn" href="{{ url_for('cart') }}">Volver al carrito</a>
+  </div>
+
+  <p style="margin-top:12px; font-size:14px; color:#555;">
+    Este flujo crea un <b>charge en Coinbase</b> y lo confirma vía <b>webhook</b> en tu backend.
+  </p>
+</div>
+
+
+<script src="https://commerce.coinbase.com/v1/checkout.js"></script>
+<script>
+(function () {
+  const box = document.getElementById("coinbase-result");
+  const container = document.getElementById("coinbase-button");
+
+  function ok(msg) { 
+    box.style.display = "block";
+    box.className = "alert ok"; 
+    box.textContent = msg; 
+  }
+  function err(msg, data) { 
+    box.style.display = "block";
+    box.className = "alert error"; 
+    box.textContent = msg; 
+    if (data) console.error("Coinbase error:", data); 
+  }
+
+  async function initCrypto() {
+    try {
+      const res = await fetch("{{ url_for('coinbase_create_charge') }}", { method: "POST" });
+      const data = await res.json();
+
+      if (!res.ok || !data.data) {
+        const errMsg = (data.error && data.error.message) || data.message || "Error desconocido";
+        err("❌ No se pudo crear el cargo en Coinbase: " + errMsg, data);
+        return;
+      }
+
+      const chargeId = data.data.id;
+
+      container.innerHTML = `
+        <a class="btn primary"
+           href="https://commerce.coinbase.com/charges/${chargeId}"
+           target="_blank">
+          Pagar con Coinbase
+        </a>
+      `;
+
+      ok("✅ Cargo creado correctamente. Haz clic en el botón para continuar en Coinbase.");
+    } catch (e) {
+      err("❌ No se pudo inicializar el pago con Coinbase", e);
+    }
+  }
+
+  initCrypto();
+})();
+</script>
+{% endblock %}

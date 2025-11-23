@@ -1,0 +1,62 @@
+{% extends "_layout.html" %}
+{% block title %}Pagar con PayPal{% endblock %}
+
+{% block head %}
+  <meta name="pay-amount-pen" content="{{ total }}">
+  <meta name="pay-tipo-cambio" content="3.8">
+{% endblock %}
+
+{% block content %}
+<section class="panel container small">
+  <div class="card">
+    <h1>Pago con PayPal</h1>
+
+    <p>Monto a pagar:</p>
+    <div class="amount">
+      <b>
+        S/ {{ '%.2f' % (total / 100) }}
+        ≈ {{ '%.2f' % ((total / 100) / 3.8) }} USD
+      </b>
+    </div>
+
+    <div id="paypal-button-container" style="margin-top:20px"></div>
+    <div id="result" class="alert" style="margin-top:12px;"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=USD"></script>
+<script>
+(function () {
+  const box = document.getElementById("result");
+  function ok(msg) { box.className = "alert ok"; box.textContent = msg; }
+  function err(msg) { box.className = "alert error"; box.textContent = msg; }
+
+  paypal.Buttons({
+    createOrder: () => fetch("{{ url_for('paypal_create_order') }}", {
+      method: "POST"
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.ok) throw new Error("❌ No se pudo crear la orden");
+      return data.id;
+    }),
+
+    onApprove: (data) => fetch(`/paypal/capture-order/${data.orderID}`, { method: "POST" })
+    .then(res => res.json())
+    .then(out => {
+      if (out.ok) {
+        ok("✅ Pago exitoso con PayPal");
+      } else {
+        err("❌ Error al capturar el pago");
+        console.error(out);
+      }
+    }),
+
+    onCancel: () => err("❌ Pago cancelado por el usuario"),
+    onError: (e) => { err("❌ Error con PayPal"); console.error(e); }
+  }).render('#paypal-button-container');
+})();
+</script>
+{% endblock %}

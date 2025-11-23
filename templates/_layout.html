@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Academia EduTech{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+
+<body class="light">
+  <header class="topbar">
+    <div class="brand">Academia EduTech</div>
+    <nav>
+      {% if session.get('user') %}
+        <a href="{{ url_for('shop') }}" class="btn">Tienda</a>
+        <a href="{{ url_for('cart') }}" class="btn">Carrito</a>
+        <a href="{{ url_for('logout') }}" class="btn">Salir</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ::::::::::::::::::::::::::::::::: -->
+  <!--  CHAT WIDGET FLOTANTE 💬        -->
+  <!-- ::::::::::::::::::::::::::::::::: -->
+  {% if session.get('user') %}
+  <div id="chat-widget">
+    <div id="chat-widget-window">
+      <div id="chat-widget-messages"></div>
+
+      <div id="chat-widget-input-bar">
+        <input id="chat-widget-input" type="text" placeholder="Escribe..." autocomplete="off">
+        <button id="chat-widget-send">Enviar</button>
+      </div>
+    </div>
+
+    <button id="chat-widget-toggle">💬</button>
+  </div>
+  {% endif %}
+
+  <!-- ::::::::::::::::::::::::::::::::: -->
+  <!--  SCRIPT DE WIDGET                -->
+  <!-- ::::::::::::::::::::::::::::::::: -->
+  <script>
+  const toggleBtn = document.getElementById("chat-widget-toggle");
+  const widgetWin = document.getElementById("chat-widget-window");
+
+  if(toggleBtn){
+    toggleBtn.onclick = () => {
+      widgetWin.style.display = (widgetWin.style.display === "block") ? "none" : "block";
+    };
+
+    document.getElementById("chat-widget-send").onclick = sendWidgetMessage;
+    document.getElementById("chat-widget-input").addEventListener("keypress", function(e){
+      if(e.key === "Enter") sendWidgetMessage();
+    });
+
+    function sendWidgetMessage(){
+      const input = document.getElementById("chat-widget-input");
+      const text = input.value.trim();
+      if(!text) return;
+      addMsgWidget(text, "user");
+      input.value = "";
+
+      fetch("/consultar_chatgpt", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json"},
+        body:JSON.stringify({pregunta:text})
+      })
+      .then(r=>r.text())
+      .then(t=>addMsgWidget(t, "assistant"));
+    }
+
+    function addMsgWidget(text, type){
+      const m = document.getElementById("chat-widget-messages");
+      const div = document.createElement("div");
+      div.className = "msg " + type;
+      div.innerText = text;
+      m.appendChild(div);
+      m.scrollTop = m.scrollHeight;
+    }
+  }
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

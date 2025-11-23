@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Billeteras</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="light">
+  <header class="topbar">
+    <div class="brand">Academia Virtual</div>
+    <nav><a href="{{ url_for('checkout') }}" class="btn">Volver</a></nav>
+  </header>
+
+  <main class="container small">
+    <h1>Billeteras (demo)</h1>
+    <p>Por ahora mostramos un QR de prueba hasta que te habiliten Yape/Plin.</p>
+    <img src="{{ url_for('static', filename='img/qr_demo.svg') }}" alt="QR demo" style="width:200px">
+  </main>
+</body>
+</html>

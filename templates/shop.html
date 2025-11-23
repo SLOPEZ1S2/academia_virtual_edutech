@@ -1,0 +1,28 @@
+{% extends "_layout.html" %}
+{% block title %}Academia EduTech - Cursos{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Cursos disponibles</h1>
+  <p>Selecciona los cursos que deseas aprender en <strong>Academia EduTech</strong>.</p>
+
+  <ul class="list">
+    {% for p in products %}
+      <li style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <strong>{{ p.name }}</strong><br>
+          <small>⏳ Duración: {{ p.duration }}</small><br>
+          <small>💰 S/ {{ '%.2f' % (p.price / 100) }}</small>
+        </div>
+        <a href="{{ url_for('add_to_cart', pid=p.id) }}" class="btn primary">
+          Agregar
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <div class="actions" style="margin-top:16px;">
+    <a class="btn" href="{{ url_for('cart') }}">Ir al carrito</a>
+  </div>
+</div>
+{% endblock %}
